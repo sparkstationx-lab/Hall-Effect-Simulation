@@ -7,12 +7,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from './components/Navbar';
 import { SimulationCanvas } from './components/SimulationCanvas';
 import { ControlPanel } from './components/ControlPanel';
-import { MeasurementCards } from './components/MeasurementCards';
 import { GraphsSection } from './components/GraphsSection';
 import { GuidedExperiments } from './components/GuidedExperiments';
 import { TheorySection } from './components/TheorySection';
 import { SimulationParams } from './types/physics';
 import { calculateHallEffect, MATERIAL_PRESETS } from './utils/physics';
+import { X } from 'lucide-react';
 
 const DEFAULT_PARAMS: SimulationParams = {
   magneticField: 1.0, // 1.0 Tesla
@@ -35,8 +35,8 @@ const DEFAULT_PARAMS: SimulationParams = {
 
 export default function App() {
   const [params, setParams] = useState<SimulationParams>(DEFAULT_PARAMS);
-  const [activeTab, setActiveTab] = useState<'simulation' | 'graphs' | 'experiments' | 'theory'>('simulation');
   const [darkMode, setDarkMode] = useState<boolean>(true);
+  const [activeModal, setActiveModal] = useState<'none' | 'graphs' | 'experiments' | 'theory'>('none');
 
   // Sync Dark Mode class on <html> element
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function App() {
   };
 
   const handleRandomize = () => {
-    const randomMat = MATERIAL_PRESETS[Math.floor(Math.random() * (MATERIAL_PRESETS.length - 1))]; // avoid custom
+    const randomMat = MATERIAL_PRESETS[Math.floor(Math.random() * (MATERIAL_PRESETS.length - 1))];
     const randomB = parseFloat((0.4 + Math.random() * 1.5).toFixed(2));
     const randomI = parseFloat((0.5 + Math.random() * 4.0).toFixed(1));
     const randomFieldDir = Math.random() > 0.5 ? 'into' : 'out';
@@ -95,108 +95,87 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200 selection:bg-indigo-500 selection:text-white">
       
       {/* Top Navbar */}
       <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         onReset={handleReset}
         onRandomize={handleRandomize}
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        
-        {/* TAB 1: MAIN SIMULATION DASHBOARD */}
-        {activeTab === 'simulation' && (
-          <div className="space-y-6">
-            
-            {/* Split Screen Layout: Left Controls (1/3) + Right Main Stage (2/3) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
-              {/* Left Control Panel (4 cols) */}
-              <div className="lg:col-span-4">
-                <ControlPanel
-                  params={params}
-                  setParams={setParams}
-                  onReverseField={handleReverseField}
-                  onReverseCurrent={handleReverseCurrent}
-                  onReset={handleReset}
-                  onRandomize={handleRandomize}
-                />
-              </div>
-
-              {/* Center/Right Simulation Canvas (8 cols) */}
-              <div className="lg:col-span-8 space-y-6">
-                <SimulationCanvas
-                  params={params}
-                  setParams={setParams}
-                  results={results}
-                  darkMode={darkMode}
-                />
-
-                {/* Real-Time Measurement Telemetry Cards */}
-                <MeasurementCards params={params} results={results} />
-              </div>
-
-            </div>
-
-            {/* Embedded Graphs Strip below Main Stage */}
-            <GraphsSection params={params} results={results} darkMode={darkMode} />
+      {/* Main Distraction-Free Physics Stage (TWO PRIMARY SECTIONS ONLY) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* SECTION 1: Experimental Controls (4 cols) */}
+          <div className="lg:col-span-4">
+            <ControlPanel
+              params={params}
+              setParams={setParams}
+              onReverseField={handleReverseField}
+              onReverseCurrent={handleReverseCurrent}
+              onReset={handleReset}
+              onRandomize={handleRandomize}
+            />
           </div>
-        )}
 
-        {/* TAB 2: REAL-TIME GRAPHS */}
-        {activeTab === 'graphs' && (
-          <div className="space-y-6">
-            <GraphsSection params={params} results={results} darkMode={darkMode} />
-            <MeasurementCards params={params} results={results} />
+          {/* SECTION 2: Simulation Stage with Integrated Measurement Strip (8 cols) */}
+          <div className="lg:col-span-8">
+            <SimulationCanvas
+              params={params}
+              setParams={setParams}
+              results={results}
+              darkMode={darkMode}
+            />
           </div>
-        )}
 
-        {/* TAB 3: GUIDED LAB EXPERIMENTS */}
-        {activeTab === 'experiments' && (
-          <div className="space-y-6">
-            <GuidedExperiments params={params} setParams={setParams} results={results} />
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              <div className="lg:col-span-7">
-                <SimulationCanvas params={params} setParams={setParams} results={results} darkMode={darkMode} />
-              </div>
-              <div className="lg:col-span-5">
-                <ControlPanel
-                  params={params}
-                  setParams={setParams}
-                  onReverseField={handleReverseField}
-                  onReverseCurrent={handleReverseCurrent}
-                  onReset={handleReset}
-                  onRandomize={handleRandomize}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: THEORY & FORMULAS */}
-        {activeTab === 'theory' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <TheorySection />
-          </div>
-        )}
-
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 text-xs text-center text-slate-500 dark:text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
-          <span>HallLab — Interactive Hall Effect Virtual Physics Laboratory</span>
-          <div className="flex items-center gap-3">
-            <span>V_H = (B · I) / (n · q · t)</span>
-            <span>·</span>
-            <span>Lorentz Force F = q(v × B)</span>
+      {/* Secondary Tool Overlay Modals (Graphs / Guided Lab / Theory) */}
+      {activeModal !== 'none' && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto animate-in fade-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                {activeModal === 'graphs' && 'Real-Time Parameter Sweeps & Curves'}
+                {activeModal === 'experiments' && 'Guided Physics Experiments'}
+                {activeModal === 'theory' && 'Hall Effect Physics Theory & Formulations'}
+              </h3>
+              <button
+                onClick={() => setActiveModal('none')}
+                className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg bg-slate-100 dark:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body Content */}
+            <div className="max-h-[75vh] overflow-y-auto pr-1">
+              {activeModal === 'graphs' && (
+                <GraphsSection params={params} results={results} darkMode={darkMode} />
+              )}
+              {activeModal === 'experiments' && (
+                <GuidedExperiments params={params} setParams={setParams} results={results} />
+              )}
+              {activeModal === 'theory' && <TheorySection />}
+            </div>
+
           </div>
+        </div>
+      )}
+
+      {/* Minimal Footer */}
+      <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 py-3 text-xs text-center text-slate-500 dark:text-slate-400">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+          <span>HallLab — Interactive Hall Effect Physics Lab</span>
+          <span className="font-mono text-[11px]">V_H = (B · I) / (n · q · t)</span>
         </div>
       </footer>
 

@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, FastForward, Eye, Layers, Compass, Zap, AlertCircle } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Play, Pause, Activity, Magnet, Zap, Database, Gauge, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { CalculationResults, SimulationParams } from '../types/physics';
+import { formatScientific } from '../utils/physics';
 
 interface SimulationCanvasProps {
   params: SimulationParams;
@@ -34,10 +35,10 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
   const particlesRef = useRef<Particle[]>([]);
   const animFrameRef = useRef<number | null>(null);
 
-  // Initialize particles on carrier/material change
+  // Initialize particles on carrier or material change
   useEffect(() => {
     const particles: Particle[] = [];
-    const count = 38;
+    const count = 42;
     for (let i = 0; i < count; i++) {
       particles.push({
         id: i,
@@ -65,7 +66,6 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       const dt = Math.min((now - lastTime) / 1000, 0.05);
       lastTime = now;
 
-      // Handle HDPI canvas scaling for high DPI displays
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
       if (canvas.width !== width * window.devicePixelRatio || canvas.height !== height * window.devicePixelRatio) {
@@ -83,7 +83,7 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       ctx.fillRect(0, 0, width, height);
 
       // Subtle Background Grid
-      ctx.strokeStyle = darkMode ? 'rgba(30, 41, 59, 0.6)' : 'rgba(226, 232, 240, 0.8)';
+      ctx.strokeStyle = darkMode ? 'rgba(30, 41, 59, 0.5)' : 'rgba(226, 232, 240, 0.8)';
       ctx.lineWidth = 1;
       const gridSize = 32;
       for (let x = 0; x < width; x += gridSize) {
@@ -102,9 +102,9 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       // 3D Isometric View Parameters for Semiconductor Slab
       const slabCenterX = width * 0.46;
       const slabCenterY = height * 0.50;
-      const slabLength = Math.min(width * 0.50, 400);
-      const slabWidth = Math.min(height * 0.30, 140);
-      const slabDepth = 55;
+      const slabLength = Math.min(width * 0.54, 440);
+      const slabWidth = Math.min(height * 0.32, 150);
+      const slabDepth = 60;
 
       const halfL = slabLength / 2;
       const halfW = slabWidth / 2;
@@ -159,7 +159,6 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
           }
         }
 
-        // B Field direction header
         ctx.font = '600 12px "JetBrains Mono", monospace';
         ctx.fillStyle = darkMode ? '#38BDF8' : '#0284C7';
         const bText = `B-FIELD = ${params.magneticField.toFixed(2)} T (${isInto ? '⊗ INTO SCREEN' : '⊙ OUT OF SCREEN'})`;
@@ -248,7 +247,7 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       ctx.strokeStyle = darkMode ? '#64748B' : '#94A3B8';
       ctx.stroke();
 
-      // Material Name Label
+      // Material Label
       ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = darkMode ? '#CBD5E1' : '#475569';
       ctx.textAlign = 'center';
@@ -264,30 +263,27 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       ctx.strokeStyle = '#EAB308';
       ctx.lineWidth = 3;
 
-      // Left circuit lead
       ctx.beginPath();
       ctx.moveTo(topLeftFront.x - 14, slabCenterY);
-      ctx.lineTo(topLeftFront.x - 75, slabCenterY);
+      ctx.lineTo(topLeftFront.x - 80, slabCenterY);
       ctx.stroke();
 
-      // Right circuit lead
       ctx.beginPath();
       ctx.moveTo(topRightFront.x + 14, slabCenterY);
-      ctx.lineTo(topRightFront.x + 75, slabCenterY);
+      ctx.lineTo(topRightFront.x + 80, slabCenterY);
       ctx.stroke();
 
-      // Current Flow Label
       if (params.current > 0) {
         ctx.fillStyle = '#EAB308';
         ctx.font = '700 12px "JetBrains Mono", monospace';
-        const currentArrowX = isCurrentRight ? topLeftFront.x - 48 : topRightFront.x + 48;
+        const currentArrowX = isCurrentRight ? topLeftFront.x - 52 : topRightFront.x + 52;
         const arrowDir = isCurrentRight ? '→' : '←';
         ctx.fillText(`I = ${params.current.toFixed(1)} A ${arrowDir}`, currentArrowX, slabCenterY - 14);
       }
 
       // --- 4. Animate Charge Carrier Particles ---
       const isElectron = params.carrierType === 'electron';
-      const particleColor = isElectron ? '#06B6D4' : '#F97316'; // Cyan vs Orange
+      const particleColor = isElectron ? '#06B6D4' : '#F97316';
       const particleGlow = isElectron ? 'rgba(6, 182, 212, 0.45)' : 'rgba(249, 115, 22, 0.45)';
       const particleLabel = isElectron ? '-' : '+';
 
@@ -334,7 +330,6 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
         const pFracZ = p.z * 0.4;
         const pos = project(pFracX, pFracY, pFracZ);
 
-        // Render Particle Trails
         if (params.showTrajectoryTrails && p.trail.length > 1) {
           ctx.beginPath();
           for (let t = 0; t < p.trail.length; t++) {
@@ -347,19 +342,16 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
           ctx.stroke();
         }
 
-        // Outer Glow Aura
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, p.size + 4, 0, Math.PI * 2);
         ctx.fillStyle = particleGlow;
         ctx.fill();
 
-        // Inner Particle Circle
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = particleColor;
         ctx.fill();
 
-        // Plus/Minus Charge Symbol
         ctx.font = '700 10px sans-serif';
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
@@ -378,7 +370,6 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
           const posTop = project(frac, 0.53, 0);
           const posBottom = project(frac, -0.53, 0);
 
-          // Top badge
           ctx.beginPath();
           ctx.arc(posTop.x, posTop.y, 8.5, 0, Math.PI * 2);
           ctx.fillStyle = topSign === '+' ? '#EF4444' : '#3B82F6';
@@ -389,7 +380,6 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
           ctx.textBaseline = 'middle';
           ctx.fillText(topSign, posTop.x, posTop.y);
 
-          // Bottom badge
           ctx.beginPath();
           ctx.arc(posBottom.x, posBottom.y, 8.5, 0, Math.PI * 2);
           ctx.fillStyle = bottomSign === '+' ? '#EF4444' : '#3B82F6';
@@ -408,10 +398,8 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       const vmWidth = 135;
       const vmHeight = 105;
 
-      // Probe Wires
       ctx.lineWidth = 2.5;
 
-      // Probe A Wire (Red)
       ctx.strokeStyle = '#EF4444';
       ctx.beginPath();
       ctx.moveTo(probeTopPos.x, probeTopPos.y);
@@ -424,7 +412,6 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       ctx.fillStyle = '#EF4444';
       ctx.fill();
 
-      // Probe B Wire (Blue)
       ctx.strokeStyle = '#3B82F6';
       ctx.beginPath();
       ctx.moveTo(probeBottomPos.x, probeBottomPos.y);
@@ -437,7 +424,6 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       ctx.fillStyle = '#3B82F6';
       ctx.fill();
 
-      // Voltmeter Container Body
       ctx.fillStyle = darkMode ? '#1E293B' : '#FFFFFF';
       ctx.strokeStyle = darkMode ? '#475569' : '#CBD5E1';
       ctx.lineWidth = 2;
@@ -446,13 +432,11 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
       ctx.fill();
       ctx.stroke();
 
-      // Voltmeter Glass Screen
       ctx.fillStyle = darkMode ? '#020617' : '#0F172A';
       ctx.beginPath();
       ctx.roundRect(vmX + 10, vmY + 12, vmWidth - 20, 50, 8);
       ctx.fill();
 
-      // Digital Readout
       ctx.font = '700 15px "JetBrains Mono", monospace';
       const vVal = results.hallVoltageMilliVolts;
       let displayStr = '0.000 mV';
@@ -552,14 +536,87 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
     };
   }, [params, results, darkMode]);
 
+  const vMilli = results.hallVoltageMilliVolts;
+  const isPositive = vMilli > 0;
+  const isNegative = vMilli < 0;
+
   return (
     <div className="relative w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-      {/* Simulation Top Bar Controls */}
-      <div className="px-4 py-3 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      
+      {/* 1. Essential Measurement Strip (Top HUD) */}
+      <div className="px-4 py-3 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-slate-50 dark:from-slate-900 dark:via-slate-800/60 dark:to-slate-900 border-b border-slate-200 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3 items-center text-xs">
+        
+        {/* Hall Voltage V_H */}
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <Activity className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+              Hall Voltage (V_H)
+            </span>
+            <span className={`font-mono tabular-nums font-bold text-sm ${
+              isPositive ? 'text-emerald-600 dark:text-emerald-400' :
+              isNegative ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'
+            }`}>
+              {vMilli > 0 ? '+' : ''}{vMilli.toFixed(4)} mV
+            </span>
+          </div>
+        </div>
+
+        {/* Magnetic Field B */}
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 shrink-0">
+            <Magnet className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+              B-Field (B)
+            </span>
+            <span className="font-mono tabular-nums font-bold text-slate-900 dark:text-white text-sm">
+              {params.magneticField.toFixed(2)} T <span className="text-[10px] font-normal text-slate-500">({params.fieldDirection === 'into' ? '⊗ Into' : '⊙ Out'})</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Current I */}
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 shrink-0">
+            <Zap className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+              Current (I)
+            </span>
+            <span className="font-mono tabular-nums font-bold text-slate-900 dark:text-white text-sm">
+              {params.current.toFixed(1)} A <span className="text-[10px] font-normal text-slate-500">({params.currentDirection === 'positive' ? '→ L-R' : '← R-L'})</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Carrier Density n & Type */}
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400 shrink-0">
+            <Database className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+              Density (n) · {params.carrierType === 'electron' ? 'e⁻' : 'h⁺'}
+            </span>
+            <span className="font-mono tabular-nums font-bold text-slate-900 dark:text-white text-xs truncate">
+              {formatScientific(params.carrierDensity, 1)} m⁻³
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* 2. Simulation Canvas Controls Bar */}
+      <div className="px-4 py-2.5 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setParams(prev => ({ ...prev, isSimulating: !prev.isSimulating }))}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-[0.98] ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-[0.98] ${
               params.isSimulating
                 ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm'
                 : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
@@ -569,11 +626,11 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
             <span>{params.isSimulating ? 'Pause Motion' : 'Start Motion'}</span>
           </button>
 
-          {/* Speed Segmented Control */}
+          {/* Speed Selector */}
           <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-700/60 rounded-xl">
             <button
               onClick={() => setParams(prev => ({ ...prev, particleSpeedScale: 0.5 }))}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2 py-0.5 rounded-lg text-xs font-semibold transition-all ${
                 params.particleSpeedScale === 0.5
                   ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -583,7 +640,7 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
             </button>
             <button
               onClick={() => setParams(prev => ({ ...prev, particleSpeedScale: 1.0 }))}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2 py-0.5 rounded-lg text-xs font-semibold transition-all ${
                 params.particleSpeedScale === 1.0
                   ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -593,7 +650,7 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
             </button>
             <button
               onClick={() => setParams(prev => ({ ...prev, particleSpeedScale: 2.0 }))}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2 py-0.5 rounded-lg text-xs font-semibold transition-all ${
                 params.particleSpeedScale === 2.0
                   ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -613,7 +670,7 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
               onChange={e => setParams(prev => ({ ...prev, showForceVectors: e.target.checked }))}
               className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
             />
-            <span>Force Vectors</span>
+            <span>Vectors</span>
           </label>
 
           <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -623,7 +680,7 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
               onChange={e => setParams(prev => ({ ...prev, showFieldLines: e.target.checked }))}
               className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
             />
-            <span>B-Field Overlay</span>
+            <span>B-Overlay</span>
           </label>
 
           <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -633,34 +690,16 @@ export const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
               onChange={e => setParams(prev => ({ ...prev, showTrajectoryTrails: e.target.checked }))}
               className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
             />
-            <span>Particle Trails</span>
+            <span>Trails</span>
           </label>
         </div>
       </div>
 
-      {/* Main Interactive Canvas Area */}
-      <div className="relative w-full h-[430px] sm:h-[490px]">
+      {/* 3. Main Interactive Canvas Area (Dominant Focal Viewport) */}
+      <div className="relative w-full h-[460px] sm:h-[530px]">
         <canvas ref={canvasRef} className="w-full h-full block" />
       </div>
 
-      {/* Live Status Telemetry Bar */}
-      <div className="px-4 py-2.5 bg-slate-100/90 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-slate-600 dark:text-slate-400">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>
-            Lorentz Force: {results.lorentzForceDirection.toUpperCase()} deflection
-          </span>
-          <span className="text-slate-400 dark:text-slate-600">|</span>
-          <span>
-            Drift Velocity: {(results.driftVelocity * 1e3).toFixed(3)} mm/s
-          </span>
-        </div>
-        <div>
-          <span>
-            Carrier: {params.carrierType === 'electron' ? 'e⁻ (Electrons)' : 'h⁺ (Holes)'}
-          </span>
-        </div>
-      </div>
     </div>
   );
 };
