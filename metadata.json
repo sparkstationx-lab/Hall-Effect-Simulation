@@ -1,0 +1,6 @@
+{
+  "name": "HallLab - Interactive Hall Effect Physics Simulator",
+  "description": "Virtual physics laboratory to experiment with magnetic fields, electric current, charge carriers, and Hall voltage in real time.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
